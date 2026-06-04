@@ -4,6 +4,7 @@ using P6_Travel_Planner_Backend.Data;
 using P6_Travel_Planner_Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Security.Claims;
 
 namespace P6_Travel_Planner_Backend.Controllers
 {
@@ -14,13 +15,23 @@ namespace P6_Travel_Planner_Backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IMemoryCache _cache;
+        private readonly ILogger<DestinationController> _logger;
 
-        public DestinationController(AppDbContext context, IMemoryCache cache)
+        public DestinationController(AppDbContext context, IMemoryCache cache, ILogger<DestinationController> logger)
         {
             _context = context;
             _cache = cache;
+            _logger = logger;
         }
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            if (!int.TryParse(userIdClaim, out int userId))
+                throw new UnauthorizedAccessException("Invalid user claim.");
+
+            return userId;
+        }
         // ✅ GET ALL (PUBLIC)
         [AllowAnonymous]
         [HttpGet] // SAME endpoint
@@ -29,6 +40,12 @@ namespace P6_Travel_Planner_Backend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
+            _logger.LogInformation(
+    "Fetching destinations. Search: {Search}, Page: {Page}, PageSize: {PageSize}",
+    search,
+    page,
+    pageSize);
+
             var query = _context.Destinations.AsQueryable();
 
             // 🔍 SEARCH
@@ -49,6 +66,11 @@ namespace P6_Travel_Planner_Backend.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
+            _logger.LogInformation(
+    "Retrieved {Count} destinations out of {TotalCount} total results",
+    data.Count,
+    totalCount);
+
             return Ok(new
             {
                 totalCount,
@@ -63,8 +85,22 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
+            _logger.LogInformation(
+       "Fetching destination. DestinationId: {DestinationId}",
+       id);
+
             var dest = await _context.Destinations.FindAsync(id);
-            if (dest == null) return NotFound();
+            if (dest == null)
+            {
+                _logger.LogWarning(
+                    "Destination not found. DestinationId: {DestinationId}",
+                    id);
+
+                return NotFound();
+            }
+            _logger.LogInformation(
+       "Destination retrieved successfully. DestinationId: {DestinationId}",
+       id);
             return Ok(dest);
         }
 
@@ -73,8 +109,20 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(Destination dest)
         {
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+    "Admin {UserId} creating destination {DestinationName}",
+    userId,
+    dest.Name);
+
             _context.Destinations.Add(dest);
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+    "Admin {UserId} created destination {DestinationId}",
+    userId,
+    dest.Id);
 
             return Ok(dest);
         }
@@ -84,8 +132,23 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, Destination updated)
         {
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+                "Admin {UserId} updating destination {DestinationId}",
+                userId,
+                id);
+
             var dest = await _context.Destinations.FindAsync(id);
-            if (dest == null) return NotFound();
+            if (dest == null)
+            {
+                _logger.LogWarning(
+     "Admin {UserId} attempted to update non-existent destination {DestinationId}",
+     userId,
+     id);
+
+                return NotFound();
+            }
 
             dest.Name = updated.Name;
             dest.Country = updated.Country;
@@ -94,7 +157,16 @@ namespace P6_Travel_Planner_Backend.Controllers
 
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation(
+    "Admin {UserId} updated destination {DestinationId}",
+    userId,
+    id);
+
             _cache.Remove($"destination_overview_{id}");
+
+            _logger.LogInformation(
+    "Cache invalidated for destination overview. DestinationId: {DestinationId}",
+    id);
 
             return Ok(dest);
         }
@@ -104,13 +176,37 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+                "Admin {UserId} deleting destination {DestinationId}",
+                userId,
+                id);
+
             var dest = await _context.Destinations.FindAsync(id);
-            if (dest == null) return NotFound();
+            if (dest == null)
+            {
+                _logger.LogWarning(
+     "Admin {UserId} attempted to delete non-existent destination {DestinationId}",
+     userId,
+     id);
+
+                return NotFound();
+            }
 
             _context.Destinations.Remove(dest);
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation(
+    "Admin {UserId} deleted destination {DestinationId}",
+    userId,
+    id);
+
             _cache.Remove($"destination_overview_{id}");
+
+            _logger.LogInformation(
+    "Cache invalidated for deleted destination. DestinationId: {DestinationId}",
+    id);
 
             return Ok("Deleted");
         }

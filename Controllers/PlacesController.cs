@@ -9,19 +9,31 @@ namespace P6_Travel_Planner_Backend.Controllers
     public class PlacesController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<PlacesController> _logger;
 
-        public PlacesController(AppDbContext context)
+        public PlacesController(AppDbContext context, ILogger<PlacesController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // ✅ GET BY DESTINATION
         [HttpGet("{destinationId}")]
         public async Task<IActionResult> GetByDestination(int destinationId)
         {
+            _logger.LogInformation(
+        "Fetching places for DestinationId: {DestinationId}",
+        destinationId);
+
             var places = await _context.Places
                 .Where(p => p.DestinationId == destinationId)
                 .ToListAsync();
+
+            _logger.LogInformation(
+       "Retrieved {PlaceCount} places for DestinationId: {DestinationId}",
+       places.Count,
+       destinationId);
+
 
             return Ok(places);
         }
@@ -35,6 +47,14 @@ namespace P6_Travel_Planner_Backend.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
+            _logger.LogInformation(
+    "Fetching places. DestinationId: {DestinationId}, Category: {Category}, Search: {Search}, Page: {Page}, PageSize: {PageSize}",
+    destinationId,
+    category,
+    search,
+    page,
+    pageSize);
+
             var query = _context.Places.AsQueryable();
 
             if (destinationId != 0)
@@ -54,6 +74,20 @@ namespace P6_Travel_Planner_Backend.Controllers
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
+            if (totalCount == 0)
+            {
+                _logger.LogWarning(
+                    "No places found. DestinationId: {DestinationId}, Category: {Category}, Search: {Search}",
+                    destinationId,
+                    category,
+                    search);
+            }
+
+            _logger.LogInformation(
+    "Retrieved {Count} places out of {TotalCount} total results",
+    data.Count,
+    totalCount);
 
             return Ok(new
             {
