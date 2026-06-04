@@ -13,22 +13,41 @@ namespace P6_Travel_Planner_Backend.Controllers
     public class TripController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<TripController> _logger;
 
-        public TripController(AppDbContext context)
+        public TripController(AppDbContext context, ILogger<TripController> logger)
         {
             _context = context;
+            _logger = logger;
         }
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                throw new UnauthorizedAccessException("Invalid user claim.");
+            }
+
+            return userId;
+        }
         // ✅ GET ALL TRIPS (ONLY USER'S)
         [HttpGet]
         public async Task<IActionResult> GetTrips()
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userId = GetUserId();
+
+            _logger.LogInformation("Fetching trips for UserId: {UserId}", userId);
 
             var trips = await _context.Trips
                 .Where(t => t.UserId == userId)
                 .Include(t => t.Destination)
                 .ToListAsync();
+
+            _logger.LogInformation(
+                "Retrieved {TripCount} trips for UserId: {UserId}",
+                trips.Count,
+                userId);
 
             return Ok(trips);
         }
@@ -37,7 +56,13 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTrip(int id)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+                "Fetching TripId: {TripId} for UserId: {UserId}",
+                id,
+                userId);
+
 
             var trip = await _context.Trips
                 .Include(t => t.Days)
@@ -45,7 +70,18 @@ namespace P6_Travel_Planner_Backend.Controllers
                 .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
 
             if (trip == null)
+            {
+                _logger.LogWarning(
+                    "Trip not found. TripId: {TripId}, UserId: {UserId}",
+                    id,
+                    userId);
                 return NotFound();
+            }
+
+            _logger.LogInformation(
+    "Trip retrieved successfully. TripId: {TripId}, UserId: {UserId}",
+    id,
+    userId);
 
             return Ok(trip);
         }
@@ -54,12 +90,22 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTrip(Trip trip)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+               "Creating trip '{Title}' for UserId: {UserId}",
+               trip.Title,
+               userId);
 
             trip.UserId = userId; // 🔥 IMPORTANT
 
             _context.Trips.Add(trip);
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+        "Trip created successfully. TripId: {TripId}, UserId: {UserId}",
+        trip.Id,
+        userId);
 
             return Ok(trip);
         }
@@ -68,13 +114,25 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateTrip(int id, Trip updatedTrip)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+       "Updating TripId: {TripId} for UserId: {UserId}",
+       id,
+       userId);
 
             var trip = await _context.Trips
                 .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
 
             if (trip == null)
+            {
+                _logger.LogWarning(
+                    "Update failed. Trip not found. TripId: {TripId}, UserId: {UserId}",
+                    id,
+                    userId);
+
                 return NotFound();
+            }
 
             trip.Title = updatedTrip.Title;
             trip.StartDate = updatedTrip.StartDate;
@@ -83,6 +141,11 @@ namespace P6_Travel_Planner_Backend.Controllers
 
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation(
+       "Trip updated successfully. TripId: {TripId}, UserId: {UserId}",
+       id,
+       userId);
+
             return Ok(trip);
         }
 
@@ -90,16 +153,33 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTrip(int id)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+        "Deleting TripId: {TripId} for UserId: {UserId}",
+        id,
+        userId);
 
             var trip = await _context.Trips
                 .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
 
             if (trip == null)
+            {
+                _logger.LogWarning(
+                    "Delete failed. Trip not found. TripId: {TripId}, UserId: {UserId}",
+                    id,
+                    userId);
+
                 return NotFound();
+            }
 
             _context.Trips.Remove(trip);
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+        "Trip deleted successfully. TripId: {TripId}, UserId: {UserId}",
+        id,
+        userId);
 
             return Ok("Trip deleted");
         }

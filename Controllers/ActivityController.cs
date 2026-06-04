@@ -13,29 +13,58 @@ namespace P6_Travel_Planner_Backend.Controllers
     public class ActivityController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<ActivityController> _logger;
 
-        public ActivityController(AppDbContext context)
+
+        public ActivityController(AppDbContext context, ILogger<ActivityController> logger)
         {
             _context = context;
+            _logger = logger;
+        }
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                throw new UnauthorizedAccessException("Invalid user claim.");
+
+            return userId;
         }
 
         // ✅ GET ACTIVITIES FOR A DAY
         [HttpGet("days/{dayId}/activities")]
         public async Task<IActionResult> GetActivities(int dayId)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+    "Fetching activities for DayId: {DayId}, UserId: {UserId}",
+    dayId,
+    userId);
 
             var day = await _context.ItineraryDays
                 .Include(d => d.Trip)
                 .FirstOrDefaultAsync(d => d.Id == dayId && d.Trip.UserId == userId);
 
             if (day == null)
+            {
+                _logger.LogWarning(
+                    "Day not found while fetching activities. DayId: {DayId}, UserId: {UserId}",
+                    dayId,
+                    userId);
+
                 return NotFound("Day not found or unauthorized");
+            }
 
             var activities = await _context.Activities
                 .Where(a => a.ItineraryDayId == dayId)
                 .OrderBy(a => a.StartTime)
                 .ToListAsync();
+
+            _logger.LogInformation(
+    "Retrieved {ActivityCount} activities for DayId: {DayId}",
+    activities.Count,
+    dayId);
 
             return Ok(activities);
         }
@@ -44,19 +73,36 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpPost("days/{dayId}/activities")]
         public async Task<IActionResult> CreateActivity(int dayId, Activity activity)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+    "Creating activity '{ActivityName}' for DayId: {DayId}, UserId: {UserId}",
+    activity.Name,
+    dayId,
+    userId);
 
             var day = await _context.ItineraryDays
                 .Include(d => d.Trip)
                 .FirstOrDefaultAsync(d => d.Id == dayId && d.Trip.UserId == userId);
 
             if (day == null)
+            {
+                _logger.LogWarning(
+    "Create activity failed. Day not found. DayId: {DayId}, UserId: {UserId}",
+    dayId,
+    userId);
                 return NotFound("Day not found or unauthorized");
+            }
 
             activity.ItineraryDayId = dayId;
 
             _context.Activities.Add(activity);
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+    "Activity created successfully. ActivityId: {ActivityId}, DayId: {DayId}",
+    activity.Id,
+    dayId);
 
             return Ok(activity);
         }
@@ -65,7 +111,12 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpPut("activities/{id}")]
         public async Task<IActionResult> UpdateActivity(int id, Activity updatedActivity)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+    "Updating ActivityId: {ActivityId}, UserId: {UserId}",
+    id,
+    userId);
 
             var activity = await _context.Activities
                 .Include(a => a.ItineraryDay)
@@ -73,7 +124,13 @@ namespace P6_Travel_Planner_Backend.Controllers
                 .FirstOrDefaultAsync(a => a.Id == id && a.ItineraryDay.Trip.UserId == userId);
 
             if (activity == null)
+            {
+                _logger.LogWarning(
+    "Update failed. Activity not found. ActivityId: {ActivityId}, UserId: {UserId}",
+    id,
+    userId);
                 return NotFound();
+            }
 
             activity.Name = updatedActivity.Name;
             activity.Location = updatedActivity.Location;
@@ -83,6 +140,11 @@ namespace P6_Travel_Planner_Backend.Controllers
 
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation(
+    "Activity updated successfully. ActivityId: {ActivityId}, UserId: {UserId}",
+    id,
+    userId);
+
             return Ok(activity);
         }
 
@@ -90,7 +152,12 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpDelete("activities/{id}")]
         public async Task<IActionResult> DeleteActivity(int id)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userId = GetUserId();
+
+            _logger.LogInformation(
+    "Deleting ActivityId: {ActivityId}, UserId: {UserId}",
+    id,
+    userId);
 
             var activity = await _context.Activities
                 .Include(a => a.ItineraryDay)
@@ -98,10 +165,22 @@ namespace P6_Travel_Planner_Backend.Controllers
                 .FirstOrDefaultAsync(a => a.Id == id && a.ItineraryDay.Trip.UserId == userId);
 
             if (activity == null)
+            {
+                _logger.LogWarning(
+    "Delete failed. Activity not found. ActivityId: {ActivityId}, UserId: {UserId}",
+    id,
+    userId);
                 return NotFound();
+            }
+                
 
             _context.Activities.Remove(activity);
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+    "Activity deleted successfully. ActivityId: {ActivityId}, UserId: {UserId}",
+    id,
+    userId);
 
 
             return Ok("Activity deleted");
