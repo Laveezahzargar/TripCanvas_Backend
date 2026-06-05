@@ -1,4 +1,6 @@
-﻿namespace P6_Travel_Planner_Backend.Models
+﻿using P6_Travel_Planner_Backend.Enums;
+
+namespace P6_Travel_Planner_Backend.Models
 {
     public class Trip
     {
@@ -12,7 +14,7 @@
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
-        public string Status { get; set; }
+        public TripStatus Status { get; set; } = TripStatus.Planned;
 
         public User User { get; set; }
         public Destination Destination { get; set; }
