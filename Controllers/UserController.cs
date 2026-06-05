@@ -8,7 +8,6 @@ using P6_Travel_Planner_Backend.DTOs;
 using P6_Travel_Planner_Backend.Models;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 using System.Text;
 
 namespace P6_Travel_Planner_Backend.Controllers
@@ -111,7 +110,10 @@ namespace P6_Travel_Planner_Backend.Controllers
 
             return Ok(new
             {
-                token = new JwtSecurityTokenHandler().WriteToken(token)
+                token = new JwtSecurityTokenHandler().WriteToken(token),
+                id = user.Id,
+                email = user.Email,
+                role = user.Role
             });
         }
 
