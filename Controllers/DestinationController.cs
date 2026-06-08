@@ -55,7 +55,6 @@ namespace P6_Travel_Planner_Backend.Controllers
                     d.Name.ToLower().Contains(search.ToLower()) ||
                     d.Country.ToLower().Contains(search.ToLower()));
             }
-
             // 📊 TOTAL COUNT
             var totalCount = await query.CountAsync();
 

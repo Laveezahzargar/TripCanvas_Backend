@@ -14,7 +14,7 @@ namespace P6_Travel_Planner_Backend.Models
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
-        public TripStatus Status { get; set; } = TripStatus.Planned;
+        public TripStatus Status { get; set; } = TripStatus.InProgress;
 
         public User User { get; set; }
         public Destination Destination { get; set; }
