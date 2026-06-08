@@ -113,7 +113,8 @@ namespace P6_Travel_Planner_Backend.Controllers
                 token = new JwtSecurityTokenHandler().WriteToken(token),
                 id = user.Id,
                 email = user.Email,
-                role = user.Role
+                role = user.Role,
+                username = user.Username
             });
         }
 

@@ -3,6 +3,7 @@
     public enum TripStatus
     {
         Planned,
+        InProgress,
         Active,
         Completed
     }

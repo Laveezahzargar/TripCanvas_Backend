@@ -39,10 +39,19 @@ namespace P6_Travel_Planner_Backend.Controllers
 
             _logger.LogInformation("Fetching trips for UserId: {UserId}", userId);
 
-            var trips = await _context.Trips
-                .Where(t => t.UserId == userId)
-                .Include(t => t.Destination)
-                .ToListAsync();
+             var trips = await _context.Trips
+            .Where(t => t.UserId == userId)
+            .Select(t => new
+            {
+                t.Id,
+                t.Title,
+                t.DestinationId,
+                Destination = t.Destination.Name,
+                t.StartDate,
+                t.EndDate,
+                Status = (int)t.Status
+            })
+            .ToListAsync();
 
             _logger.LogInformation(
                 "Retrieved {TripCount} trips for UserId: {UserId}",
@@ -90,6 +99,21 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTrip(Trip trip)
         {
+            if (!ModelState.IsValid)
+            {
+                foreach (var item in ModelState)
+                {
+                    foreach (var error in item.Value.Errors)
+                    {
+                        _logger.LogError(
+                            "Field: {Field}, Error: {Error}",
+                            item.Key,
+                            error.ErrorMessage);
+                    }
+                }
+
+                return BadRequest(ModelState);
+            }
             var userId = GetUserId();
 
             _logger.LogInformation(
