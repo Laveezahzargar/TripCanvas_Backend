@@ -4,6 +4,7 @@ using P6_Travel_Planner_Backend.Data;
 using P6_Travel_Planner_Backend.Models;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using P6_Travel_Planner_Backend.DTOs;
 
 namespace P6_Travel_Planner_Backend.Controllers
 {
@@ -55,9 +56,17 @@ namespace P6_Travel_Planner_Backend.Controllers
             }
 
             var days = await _context.ItineraryDays
-                .Where(d => d.TripId == tripId)
-                .OrderBy(d => d.DayNumber)
-                .ToListAsync();
+       .Where(d => d.TripId == tripId)
+       .OrderBy(d => d.DayNumber)
+       .Select(d => new ItineraryDayDto
+       {
+           Id = d.Id,
+           TripId = d.TripId,
+           Date = d.Date,
+           DayNumber = d.DayNumber,
+           Notes = d.Notes
+       })
+       .ToListAsync();
 
             _logger.LogInformation(
         "Retrieved {DayCount} itinerary days for TripId: {TripId}",
