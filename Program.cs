@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using P6_Travel_Planner_Backend.Data;
-using System.Text;
 using P6_Travel_Planner_Backend.Middlewares;
-using Microsoft.Extensions.Caching.Memory;
+using P6_Travel_Planner_Backend.Services;
 using Serilog;
 using Serilog.Events;
+using System.Text;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -59,6 +60,9 @@ try
             IssuerSigningKey = new SymmetricSecurityKey(key)
         };
     });
+
+    builder.Services.AddHttpClient<WeatherService>();
+    builder.Services.AddHttpClient<DestinationService>();
 
     builder.Services.AddMemoryCache();
 
