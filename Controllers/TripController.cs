@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using P6_Travel_Planner_Backend.Data;
 using P6_Travel_Planner_Backend.Models;
+using System.Linq.Expressions;
 using System.Security.Claims;
 
 namespace P6_Travel_Planner_Backend.Controllers
@@ -65,35 +66,59 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTrip(int id)
         {
-            var userId = GetUserId();
+            try
+            {
+                var userId = GetUserId();
 
-            _logger.LogInformation(
-                "Fetching TripId: {TripId} for UserId: {UserId}",
+                _logger.LogInformation(
+                    "Fetching TripId: {TripId} for UserId: {UserId}",
+                    id,
+                    userId);
+
+
+                var trip = await _context.Trips
+                 .Where(t => t.Id == id && t.UserId == userId)
+                 .Select(t => new
+                 {
+                     t.Id,
+                     t.Title,
+                     t.DestinationId,
+                     Destination = t.Destination != null ? t.Destination.Name : "",
+                     t.StartDate,
+                     t.EndDate,
+                     Status = (int)t.Status
+                 })
+                 .FirstOrDefaultAsync();
+
+                if (trip == null)
+                {
+                    _logger.LogWarning(
+                        "Trip not found. TripId: {TripId}, UserId: {UserId}",
+                        id,
+                        userId);
+                    return NotFound();
+                }
+
+                _logger.LogInformation(
+                "Trip retrieved successfully. TripId: {TripId}, UserId: {UserId}",
                 id,
                 userId);
 
-
-            var trip = await _context.Trips
-                .Include(t => t.Days)
-                .ThenInclude(d => d.Activities)
-                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
-
-            if (trip == null)
-            {
-                _logger.LogWarning(
-                    "Trip not found. TripId: {TripId}, UserId: {UserId}",
-                    id,
-                    userId);
-                return NotFound();
+                return Ok(trip);
             }
-
-            _logger.LogInformation(
-    "Trip retrieved successfully. TripId: {TripId}, UserId: {UserId}",
-    id,
-    userId);
-
-            return Ok(trip);
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Unauthorized access while fetching TripId: {TripId}", id);
+                return Unauthorized();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching TripId: {TripId}", id);
+                return StatusCode(500, "An error occurred while fetching the trip.");
+            }
         }
+        
+        
 
         // ✅ CREATE TRIP
         [HttpPost]
