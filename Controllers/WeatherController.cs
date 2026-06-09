@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using P6_Travel_Planner_Backend.Data;
 using Microsoft.EntityFrameworkCore;
+using P6_Travel_Planner_Backend.Services;
 
 namespace P6_Travel_Planner_Backend.Controllers
 {
@@ -10,11 +11,13 @@ namespace P6_Travel_Planner_Backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<WeatherController> _logger;
+        private readonly WeatherService _weatherService;
 
-        public WeatherController(AppDbContext context, ILogger<WeatherController> logger)
+        public WeatherController(AppDbContext context, ILogger<WeatherController> logger, WeatherService weatherService)
         {
             _context = context;
             _logger = logger;
+            _weatherService = weatherService;
         }
 
         // ✅ CURRENT WEATHER
@@ -22,8 +25,8 @@ namespace P6_Travel_Planner_Backend.Controllers
         public async Task<IActionResult> GetCurrent(int destinationId)
         {
             _logger.LogInformation(
-        "Fetching current weather for DestinationId: {DestinationId}",
-        destinationId);
+                "Fetching current weather for DestinationId: {DestinationId}",
+                destinationId);
 
             var weather = await _context.Weather
                 .Where(w => w.DestinationId == destinationId)
@@ -40,8 +43,8 @@ namespace P6_Travel_Planner_Backend.Controllers
             }
 
             _logger.LogInformation(
-       "Current weather retrieved successfully for DestinationId: {DestinationId}",
-       destinationId);
+               "Current weather retrieved successfully for DestinationId: {DestinationId}",
+               destinationId);
 
             return Ok(weather);
         }
@@ -51,8 +54,8 @@ namespace P6_Travel_Planner_Backend.Controllers
         public async Task<IActionResult> GetForecast(int destinationId)
         {
             _logger.LogInformation(
-       "Fetching weather forecast for DestinationId: {DestinationId}",
-       destinationId);
+               "Fetching weather forecast for DestinationId: {DestinationId}",
+               destinationId);
 
             var forecast = await _context.Weather
                 .Where(w => w.DestinationId == destinationId)
