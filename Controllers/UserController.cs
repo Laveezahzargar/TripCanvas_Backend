@@ -103,6 +103,10 @@ namespace P6_Travel_Planner_Backend.Controllers
                 signingCredentials: creds
             );
 
+            _logger.LogInformation("JWT Key: {Key}", _configuration["Jwt:SecretKey"]);
+            _logger.LogInformation("Issuer: {Issuer}", _configuration["Jwt:Issuer"]);
+            _logger.LogInformation("Audience: {Audience}", _configuration["Jwt:Audience"]);
+
             _logger.LogInformation(
                "User logged in successfully. UserId: {UserId}, Email: {Email}",
                user.Id,
