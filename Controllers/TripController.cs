@@ -2,9 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using P6_Travel_Planner_Backend.Data;
+using P6_Travel_Planner_Backend.DTOs;
+using P6_Travel_Planner_Backend.Enums;
 using P6_Travel_Planner_Backend.Models;
 using System.Linq.Expressions;
 using System.Security.Claims;
+using P6_Travel_Planner_Backend.Enums;
 
 namespace P6_Travel_Planner_Backend.Controllers
 {
@@ -122,80 +125,91 @@ namespace P6_Travel_Planner_Backend.Controllers
 
         // ✅ CREATE TRIP
         [HttpPost]
-        public async Task<IActionResult> CreateTrip(Trip trip)
+        public async Task<IActionResult> CreateTrip(CreateTripDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                foreach (var item in ModelState)
-                {
-                    foreach (var error in item.Value.Errors)
-                    {
-                        _logger.LogError(
-                            "Field: {Field}, Error: {Error}",
-                            item.Key,
-                            error.ErrorMessage);
-                    }
-                }
-
-                return BadRequest(ModelState);
-            }
             var userId = GetUserId();
 
             _logger.LogInformation(
-               "Creating trip '{Title}' for UserId: {UserId}",
-               trip.Title,
-               userId);
+                "Creating trip '{Title}' for UserId: {UserId}",
+                dto.Title,
+                userId);
 
-            trip.UserId = userId; // 🔥 IMPORTANT
+            if (dto.EndDate < dto.StartDate)
+                return BadRequest("EndDate cannot be before StartDate");
+
+            var trip = new Trip
+            {
+                Title = dto.Title,
+                DestinationId = dto.DestinationId,
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+                Status = TripStatus.InProgress,
+                UserId = userId
+            };
 
             _context.Trips.Add(trip);
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-        "Trip created successfully. TripId: {TripId}, UserId: {UserId}",
-        trip.Id,
-        userId);
+                "Trip created successfully. TripId: {TripId}, UserId: {UserId}",
+                trip.Id,
+                userId);
 
-            return Ok(trip);
+            return CreatedAtAction(
+                nameof(GetTrip),
+                new { id = trip.Id },
+                new
+                {
+                    trip.Id,
+                    trip.Title,
+                    trip.DestinationId,
+                    trip.StartDate,
+                    trip.EndDate,
+                    Status = (int)trip.Status
+                });
         }
 
         // ✅ UPDATE TRIP
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTrip(int id, Trip updatedTrip)
+        public async Task<IActionResult> UpdateTrip(int id, UpdateTripDto dto)
         {
             var userId = GetUserId();
 
             _logger.LogInformation(
-       "Updating TripId: {TripId} for UserId: {UserId}",
-       id,
-       userId);
+                "Updating TripId: {TripId} for UserId: {UserId}",
+                id,
+                userId);
 
             var trip = await _context.Trips
                 .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
 
             if (trip == null)
-            {
-                _logger.LogWarning(
-                    "Update failed. Trip not found. TripId: {TripId}, UserId: {UserId}",
-                    id,
-                    userId);
-
                 return NotFound();
-            }
 
-            trip.Title = updatedTrip.Title;
-            trip.StartDate = updatedTrip.StartDate;
-            trip.EndDate = updatedTrip.EndDate;
-            trip.Status = updatedTrip.Status;
+            if (dto.EndDate < dto.StartDate)
+                return BadRequest("EndDate cannot be before StartDate");
+
+            trip.Title = dto.Title;
+            trip.StartDate = dto.StartDate;
+            trip.EndDate = dto.EndDate;
+            trip.Status = dto.Status;
 
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-       "Trip updated successfully. TripId: {TripId}, UserId: {UserId}",
-       id,
-       userId);
+                "Trip updated successfully. TripId: {TripId}, UserId: {UserId}",
+                id,
+                userId);
 
-            return Ok(trip);
+            return Ok(new
+            {
+                trip.Id,
+                trip.Title,
+                trip.DestinationId,
+                trip.StartDate,
+                trip.EndDate,
+                Status = (int)trip.Status
+            });
         }
 
         // ✅ DELETE TRIP
