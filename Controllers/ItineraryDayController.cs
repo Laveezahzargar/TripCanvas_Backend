@@ -78,7 +78,7 @@ namespace P6_Travel_Planner_Backend.Controllers
 
         // ✅ CREATE DAY
         [HttpPost("trips/{tripId}/days")]
-        public async Task<IActionResult> CreateDay(int tripId, ItineraryDay day)
+        public async Task<IActionResult> CreateDay(int tripId, CreateItineraryDayDto dto)
         {
             var userId = GetUserId();
 
@@ -99,8 +99,13 @@ namespace P6_Travel_Planner_Backend.Controllers
 
                 return NotFound("Trip not found or unauthorized");
             }
-
-            day.TripId = tripId;
+            var day = new ItineraryDay
+            {
+                TripId = tripId,
+                Date = dto.Date,
+                DayNumber = dto.DayNumber,
+                Notes = dto.Notes
+            };
 
             _context.ItineraryDays.Add(day);
             await _context.SaveChangesAsync();
@@ -110,7 +115,14 @@ namespace P6_Travel_Planner_Backend.Controllers
        day.Id,
        tripId);
 
-            return Ok(day);
+            return Ok(new ItineraryDayDto
+            {
+                Id = day.Id,
+                TripId = day.TripId,
+                Date = day.Date,
+                DayNumber = day.DayNumber,
+                Notes = day.Notes
+            });
         }
 
         // ✅ GET SINGLE DAY
@@ -143,12 +155,19 @@ namespace P6_Travel_Planner_Backend.Controllers
     id,
     userId);
 
-            return Ok(day);
+            return Ok(new ItineraryDayDto
+            {
+                Id = day.Id,
+                TripId = day.TripId,
+                Date = day.Date,
+                DayNumber = day.DayNumber,
+                Notes = day.Notes
+            });
         }
 
         // ✅ UPDATE DAY
         [HttpPut("days/{id}")]
-        public async Task<IActionResult> UpdateDay(int id, ItineraryDay updatedDay)
+        public async Task<IActionResult> UpdateDay(int id, ItineraryDayDto updatedDay)
         {
             var userId = GetUserId();
 
@@ -181,7 +200,14 @@ namespace P6_Travel_Planner_Backend.Controllers
         "Itinerary day updated successfully. DayId: {DayId}",
         id);
 
-            return Ok(day);
+            return Ok(new ItineraryDayDto
+            {
+                Id = day.Id,
+                TripId = day.TripId,
+                Date = day.Date,
+                DayNumber = day.DayNumber,
+                Notes = day.Notes
+            });
         }
 
         // ✅ DELETE DAY
