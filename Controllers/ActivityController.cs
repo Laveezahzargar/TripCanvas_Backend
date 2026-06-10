@@ -79,84 +79,123 @@ namespace P6_Travel_Planner_Backend.Controllers
 
             return Ok(activities);
         }
-
-        // ✅ ADD ACTIVITY
+        //add activity
         [HttpPost("days/{dayId}/activities")]
-        public async Task<IActionResult> CreateActivity(int dayId, Activity activity)
+        public async Task<IActionResult> CreateActivity(
+    int dayId,
+    ActivityDto dto)
         {
             var userId = GetUserId();
 
             _logger.LogInformation(
-    "Creating activity '{ActivityName}' for DayId: {DayId}, UserId: {UserId}",
-    activity.Name,
-    dayId,
-    userId);
+                "Creating activity '{ActivityName}' for DayId: {DayId}, UserId: {UserId}",
+                dto.Name,
+                dayId,
+                userId);
 
             var day = await _context.ItineraryDays
                 .Include(d => d.Trip)
-                .FirstOrDefaultAsync(d => d.Id == dayId && d.Trip.UserId == userId);
+                .FirstOrDefaultAsync(
+                    d => d.Id == dayId &&
+                         d.Trip.UserId == userId);
 
             if (day == null)
             {
                 _logger.LogWarning(
-    "Create activity failed. Day not found. DayId: {DayId}, UserId: {UserId}",
-    dayId,
-    userId);
+                    "Create activity failed. Day not found. DayId: {DayId}, UserId: {UserId}",
+                    dayId,
+                    userId);
+
                 return NotFound("Day not found or unauthorized");
             }
 
-            activity.ItineraryDayId = dayId;
+            var activity = new Activity
+            {
+                ItineraryDayId = dayId,
+                Name = dto.Name,
+                Location = dto.Location,
+                Cost = dto.Cost,
+                StartTime = dto.StartTime,
+                EndTime = dto.EndTime
+            };
 
             _context.Activities.Add(activity);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation(
-    "Activity created successfully. ActivityId: {ActivityId}, DayId: {DayId}",
-    activity.Id,
-    dayId);
+            var result = new ActivityDto
+            {
+                Id = activity.Id,
+                ItineraryDayId = activity.ItineraryDayId,
+                Name = activity.Name,
+                Location = activity.Location,
+                Cost = activity.Cost,
+                StartTime = activity.StartTime,
+                EndTime = activity.EndTime
+            };
 
-            return Ok(activity);
+            _logger.LogInformation(
+                "Activity created successfully. ActivityId: {ActivityId}, DayId: {DayId}",
+                activity.Id,
+                dayId);
+
+            return Ok(result);
         }
 
         // ✅ UPDATE ACTIVITY
         [HttpPut("activities/{id}")]
-        public async Task<IActionResult> UpdateActivity(int id, Activity updatedActivity)
+        public async Task<IActionResult> UpdateActivity(
+            int id,
+            ActivityDto dto)
         {
             var userId = GetUserId();
 
             _logger.LogInformation(
-    "Updating ActivityId: {ActivityId}, UserId: {UserId}",
-    id,
-    userId);
+                "Updating ActivityId: {ActivityId}, UserId: {UserId}",
+                id,
+                userId);
 
             var activity = await _context.Activities
                 .Include(a => a.ItineraryDay)
                 .ThenInclude(d => d.Trip)
-                .FirstOrDefaultAsync(a => a.Id == id && a.ItineraryDay.Trip.UserId == userId);
+                .FirstOrDefaultAsync(a =>
+                    a.Id == id &&
+                    a.ItineraryDay.Trip.UserId == userId);
 
             if (activity == null)
             {
                 _logger.LogWarning(
-    "Update failed. Activity not found. ActivityId: {ActivityId}, UserId: {UserId}",
-    id,
-    userId);
+                    "Update failed. Activity not found. ActivityId: {ActivityId}, UserId: {UserId}",
+                    id,
+                    userId);
+
                 return NotFound();
             }
 
-            activity.Name = updatedActivity.Name;
-            activity.Location = updatedActivity.Location;
-            activity.Cost = updatedActivity.Cost;
-            activity.StartTime = updatedActivity.StartTime;
-            activity.EndTime = updatedActivity.EndTime;
+            activity.Name = dto.Name;
+            activity.Location = dto.Location;
+            activity.Cost = dto.Cost;
+            activity.StartTime = dto.StartTime;
+            activity.EndTime = dto.EndTime;
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation(
-    "Activity updated successfully. ActivityId: {ActivityId}, UserId: {UserId}",
-    id,
-    userId);
+            var result = new ActivityDto
+            {
+                Id = activity.Id,
+                ItineraryDayId = activity.ItineraryDayId,
+                Name = activity.Name,
+                Location = activity.Location,
+                Cost = activity.Cost,
+                StartTime = activity.StartTime,
+                EndTime = activity.EndTime
+            };
 
-            return Ok(activity);
+            _logger.LogInformation(
+                "Activity updated successfully. ActivityId: {ActivityId}, UserId: {UserId}",
+                id,
+                userId);
+
+            return Ok(result);
         }
 
         // ✅ DELETE ACTIVITY
