@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using P6_Travel_Planner_Backend.Data;
+using P6_Travel_Planner_Backend.DTOs;
 using P6_Travel_Planner_Backend.Models;
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
 
 namespace P6_Travel_Planner_Backend.Controllers
 {
@@ -57,9 +58,19 @@ namespace P6_Travel_Planner_Backend.Controllers
             }
 
             var activities = await _context.Activities
-                .Where(a => a.ItineraryDayId == dayId)
-                .OrderBy(a => a.StartTime)
-                .ToListAsync();
+     .Where(a => a.ItineraryDayId == dayId)
+     .OrderBy(a => a.StartTime)
+     .Select(a => new ActivityDto
+     {
+         Id = a.Id,
+         ItineraryDayId = a.ItineraryDayId,
+         Name = a.Name,
+         Location = a.Location,
+         Cost = a.Cost,
+         StartTime = a.StartTime,
+         EndTime = a.EndTime
+     })
+     .ToListAsync();
 
             _logger.LogInformation(
     "Retrieved {ActivityCount} activities for DayId: {DayId}",

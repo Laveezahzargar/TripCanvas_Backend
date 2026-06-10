@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using P6_Travel_Planner_Backend.Data;
@@ -11,22 +10,29 @@ using Serilog.Events;
 using System.Text;
 
 
+var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+Directory.CreateDirectory(logPath);
+
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .WriteTo.Console()
-
-    // All logs
-    .WriteTo.File(
-        "Logs/all-.txt",
-        rollingInterval: RollingInterval.Day)
-
-    // Errors only
-    .WriteTo.File(
-        "Logs/error-.txt",
-        restrictedToMinimumLevel: LogEventLevel.Error,
-        rollingInterval: RollingInterval.Day)
-
-    .CreateLogger();
+               .MinimumLevel.Debug()
+               .Enrich.FromLogContext()
+               .Enrich.WithThreadId()
+               .WriteTo.Console()
+               .WriteTo.File(
+                   Path.Combine(logPath, "info-.txt"),
+                   rollingInterval: RollingInterval.Day,
+                   restrictedToMinimumLevel: LogEventLevel.Information,
+                   outputTemplate:
+                   "{Timestamp:HH:mm:ss} | {Level:u3} | [Thread:{ThreadId}] | {SourceContext} | {Message:lj}{NewLine}{Exception}{NewLine}------------------------{NewLine}"
+               )
+               .WriteTo.File(
+                   Path.Combine(logPath, "error-.txt"),
+                   rollingInterval: RollingInterval.Day,
+                   restrictedToMinimumLevel: LogEventLevel.Error,
+                   outputTemplate:
+                   "{Timestamp:HH:mm:ss} | {Level:u3} | [Thread:{ThreadId}] | {SourceContext} | {Message:lj}{NewLine}{Exception}{NewLine}------------------------{NewLine}"
+               )
+               .CreateLogger();
 
 try 
 {
