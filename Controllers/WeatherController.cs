@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using P6_Travel_Planner_Backend.Data;
 using Microsoft.EntityFrameworkCore;
+using P6_Travel_Planner_Backend.Data;
+using P6_Travel_Planner_Backend.DTOs;
 using P6_Travel_Planner_Backend.Services;
 
 namespace P6_Travel_Planner_Backend.Controllers
@@ -28,54 +29,67 @@ namespace P6_Travel_Planner_Backend.Controllers
                 "Fetching current weather for DestinationId: {DestinationId}",
                 destinationId);
 
-            var weather = await _context.Weather
-                .Where(w => w.DestinationId == destinationId)
-                .OrderByDescending(w => w.Date)
-                .FirstOrDefaultAsync();
+            var destination = await _context.Destinations
+                .FirstOrDefaultAsync(d => d.Id == destinationId);
+
+            if (destination == null)
+                return NotFound("Destination not found.");
+
+            var weather = await _weatherService.GetWeather(
+                destination.Latitude,
+                destination.Longitude);
 
             if (weather == null)
             {
-                _logger.LogWarning(
-                    "Current weather not found for DestinationId: {DestinationId}",
+                _logger.LogError(
+                    "Failed to retrieve weather for DestinationId: {DestinationId}",
                     destinationId);
 
-                return NotFound();
+                return StatusCode(500, "Failed to retrieve weather.");
             }
 
-            _logger.LogInformation(
-               "Current weather retrieved successfully for DestinationId: {DestinationId}",
-               destinationId);
-
-            return Ok(weather);
+            return Ok(new WeatherDto
+            {
+                Date = DateTime.UtcNow,
+                Temperature = weather.CurrentWeather?.Temperature ?? 0,
+                Condition = WeatherCodeMapper.ToCondition(weather.CurrentWeather?.Weathercode ?? 0),
+                Humidity = 0,
+                WindSpeed = weather.CurrentWeather?.Windspeed ?? 0
+            });
         }
 
         // ✅ FORECAST
         [HttpGet("forecast/{destinationId}")]
         public async Task<IActionResult> GetForecast(int destinationId)
         {
-            _logger.LogInformation(
-               "Fetching weather forecast for DestinationId: {DestinationId}",
-               destinationId);
+            var destination = await _context.Destinations
+                .FirstOrDefaultAsync(d => d.Id == destinationId);
 
-            var forecast = await _context.Weather
-                .Where(w => w.DestinationId == destinationId)
-                .OrderBy(w => w.Date)
-                .ToListAsync();
+            if (destination == null)
+                return NotFound("Destination not found.");
 
-            if (forecast.Count == 0)
-            {
-                _logger.LogWarning(
-                    "No weather forecast found for DestinationId: {DestinationId}",
-                    destinationId);
-            }
+            var forecast = await _weatherService.GetForecast(
+                destination.Latitude,
+                destination.Longitude);
 
-            _logger.LogInformation(
-                "Retrieved {ForecastCount} forecast records for DestinationId: {DestinationId}",
-                forecast.Count,
-                destinationId);
+            if (forecast?.Daily == null)
+                return StatusCode(500, "Failed to retrieve forecast.");
 
+            var result = forecast.Daily.Time!
+                .Select((date, index) => new WeatherDto
+                {
+                    Date = DateTime.Parse(date),
+                    Temperature =
+                        ((forecast.Daily.TemperatureMax?[index] ?? 0) +
+                         (forecast.Daily.TemperatureMin?[index] ?? 0)) / 2,
+                    Condition = WeatherCodeMapper.ToCondition(
+    forecast.Daily.WeatherCode?[index] ?? 0),
+                    Humidity = 0,
+                    WindSpeed = 0
+                })
+                .ToList();
 
-            return Ok(forecast);
+            return Ok(result);
         }
     }
 }

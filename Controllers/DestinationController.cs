@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using P6_Travel_Planner_Backend.Data;
-using P6_Travel_Planner_Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using P6_Travel_Planner_Backend.Data;
+using P6_Travel_Planner_Backend.Models;
+using P6_Travel_Planner_Backend.Services;
 using System.Security.Claims;
 
 namespace P6_Travel_Planner_Backend.Controllers
