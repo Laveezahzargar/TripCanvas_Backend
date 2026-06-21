@@ -57,7 +57,6 @@ namespace P6_Travel_Planner_Backend.Controllers
                 WindSpeed = weather.CurrentWeather?.Windspeed ?? 0
             });
         }
-
         // ✅ FORECAST
         [HttpGet("forecast/{destinationId}")]
         public async Task<IActionResult> GetForecast(int destinationId)
