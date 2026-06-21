@@ -47,7 +47,6 @@ namespace P6_Travel_Planner_Backend.Controllers
 
                 return StatusCode(500, "Failed to retrieve weather.");
             }
-
             return Ok(new WeatherDto
             {
                 Date = DateTime.UtcNow,
