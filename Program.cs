@@ -108,6 +108,15 @@ try
 
     var app = builder.Build();
 
+    app.MapGet("/", () =>
+    {
+        return Results.Ok(new
+        {
+            Status = "TripCanvas 🎨 is running",
+            Timestamp = DateTime.UtcNow
+        });
+    });
+
     app.UseSerilogRequestLogging();
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();
