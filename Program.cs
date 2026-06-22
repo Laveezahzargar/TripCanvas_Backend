@@ -40,6 +40,7 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
+
     builder.Host.UseSerilog();
 
     builder.Services.AddDbContext<AppDbContext>(options =>
