@@ -31,31 +31,39 @@ namespace P6_Travel_Planner_Backend.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
-            _logger.LogInformation("Registration attempt for email: {Email}", dto.Email);
-
-            // Check if email exists
-            if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+            try
             {
-                _logger.LogWarning("Registration failed. Email already exists: {Email}", dto.Email);
-                return BadRequest("Email already exists");
+                _logger.LogInformation("Registration attempt for email: {Email}", dto.Email);
+
+                // Check if email exists
+                if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+                {
+                    _logger.LogWarning("Registration failed. Email already exists: {Email}", dto.Email);
+                    return BadRequest("Email already exists");
+                }
+
+                var user = new User
+                {
+                    Email = dto.Email,
+                    Username = dto.Username,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                };
+
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "User registered successfully. UserId: {UserId}, Email: {Email}",
+                    user.Id,
+                    user.Email);
+
+                return Ok("User registered successfully");
             }
-
-            var user = new User
+            catch(Exception ex)
             {
-                Email = dto.Email,
-                Username = dto.Username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation(
-                "User registered successfully. UserId: {UserId}, Email: {Email}",
-                user.Id,
-                user.Email);
-
-            return Ok("User registered successfully");
+                _logger.LogError(ex, "An error occurred during registration for email: {Email}", dto.Email);
+                throw;
+            })
         }
 
         // ✅ LOGIN
