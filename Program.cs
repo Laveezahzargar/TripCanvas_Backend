@@ -106,6 +106,19 @@ try
     });
     });
 
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowFrontend", policy =>
+        {
+            policy.WithOrigins(
+                "http://localhost:5173",
+                "https://trip-canvas-six.vercel.app"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        });
+    });
+
     var app = builder.Build();
 
     app.MapGet("/", () =>
@@ -120,25 +133,14 @@ try
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy("AllowFrontend", policy =>
-        {
-            policy.WithOrigins(
-                "http://localhost:5173",
-                "https://trip-canvas-six.vercel.app"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-        });
-    });
-
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
         app.UseSwaggerUI();
     }
+
+    app.UseCors("AllowFrontend");
 
     //  app.UseHttpsRedirection();
 
