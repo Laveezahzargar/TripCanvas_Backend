@@ -44,6 +44,7 @@ namespace P6_Travel_Planner_Backend.Controllers
 
                 var user = new User
                 {
+                    FullName = dto.FullName,
                     Email = dto.Email,
                     Username = dto.Username,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
