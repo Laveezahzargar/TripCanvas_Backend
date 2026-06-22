@@ -59,11 +59,12 @@ namespace P6_Travel_Planner_Backend.Controllers
 
                 return Ok("User registered successfully");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred during registration for email: {Email}", dto.Email);
                 throw;
-            })
+            }
+        
         }
 
         // ✅ LOGIN
